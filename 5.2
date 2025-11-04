@@ -1,0 +1,96 @@
+// To run this project:
+// 1. npm init -y
+// 2. npm install express mongoose
+// 3. node server.js
+
+// File: server.js
+const express = require('express');
+const mongoose = require('mongoose');
+const studentRoutes = require('./routes/studentRoutes');
+const app = express();
+const PORT = 3000;
+
+app.use(express.json());
+mongoose.connect('mongodb://127.0.0.1:27017/studentDB', { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('✅ MongoDB Connected'))
+  .catch(err => console.log('❌ Connection Error:', err));
+
+app.use('/students', studentRoutes);
+app.listen(PORT, () => console.log(`🚀 Server running at http://localhost:${PORT}`));
+
+
+// File: models/Student.js
+const mongoose = require('mongoose');
+const studentSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  age: { type: Number, required: true },
+  course: { type: String, required: true }
+});
+module.exports = mongoose.model('Student', studentSchema);
+
+
+// File: controllers/studentController.js
+const Student = require('../models/Student');
+
+exports.createStudent = async (req, res) => {
+  try {
+    const student = new Student(req.body);
+    const saved = await student.save();
+    res.status(201).json({ message: 'Student created', student: saved });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+exports.getStudents = async (req, res) => {
+  try {
+    const students = await Student.find();
+    res.json(students);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getStudentById = async (req, res) => {
+  try {
+    const student = await Student.findById(req.params.id);
+    if (!student) return res.status(404).json({ message: 'Not found' });
+    res.json(student);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+exports.updateStudent = async (req, res) => {
+  try {
+    const updated = await Student.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    if (!updated) return res.status(404).json({ message: 'Not found' });
+    res.json({ message: 'Student updated', student: updated });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+exports.deleteStudent = async (req, res) => {
+  try {
+    const deleted = await Student.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'Not found' });
+    res.json({ message: 'Student deleted', student: deleted });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+
+// File: routes/studentRoutes.js
+const express = require('express');
+const router = express.Router();
+const controller = require('../controllers/studentController');
+
+router.post('/', controller.createStudent);
+router.get('/', controller.getStudents);
+router.get('/:id', controller.getStudentById);
+router.put('/:id', controller.updateStudent);
+router.delete('/:id', controller.deleteStudent);
+
+module.exports = router;
