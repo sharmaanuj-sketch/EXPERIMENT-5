@@ -1,0 +1,71 @@
+ // To run this project:
+// 1. npm init -y
+// 2. npm install mongoose
+// 3. node ecommerce.js
+
+// File: ecommerce.js
+const mongoose = require('mongoose');
+mongoose.connect('mongodb://127.0.0.1:27017/ecommerceDB', { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('✅ MongoDB Connected'))
+  .catch(err => console.error('❌ Connection Error:', err));
+
+const variantSchema = new mongoose.Schema({
+  color: String,
+  size: String,
+  stock: Number
+});
+
+const productSchema = new mongoose.Schema({
+  name: String,
+  price: Number,
+  category: String,
+  variants: [variantSchema]
+});
+
+const Product = mongoose.model('Product', productSchema);
+
+async function run() {
+  await Product.deleteMany({});
+  await Product.insertMany([
+    {
+      name: 'T-Shirt',
+      price: 499,
+      category: 'Clothing',
+      variants: [
+        { color: 'Red', size: 'M', stock: 20 },
+        { color: 'Blue', size: 'L', stock: 15 }
+      ]
+    },
+    {
+      name: 'Sneakers',
+      price: 1999,
+      category: 'Footwear',
+      variants: [
+        { color: 'White', size: '9', stock: 10 },
+        { color: 'Black', size: '10', stock: 5 }
+      ]
+    },
+    {
+      name: 'Backpack',
+      price: 899,
+      category: 'Accessories',
+      variants: [
+        { color: 'Grey', size: 'Standard', stock: 8 },
+        { color: 'Navy', size: 'Large', stock: 12 }
+      ]
+    }
+  ]);
+
+  console.log('\n📦 All Products:');
+  console.log(await Product.find());
+
+  console.log('\n🧥 Filter by Category (Clothing):');
+  console.log(await Product.find({ category: 'Clothing' }));
+
+  console.log('\n🎨 Project Variant Details (color and stock only):');
+  console.log(await Product.find({}, { name: 1, 'variants.color': 1, 'variants.stock': 1, _id: 0 }));
+
+  mongoose.connection.close();
+}
+
+run();
